@@ -20,24 +20,31 @@ jobs:
           distribution: temurin
           java-version: '17'
 
+      - name: Find project ZIP
+        run: |
+          ZIP=$(find . -maxdepth 2 -name "*.zip" | head -1)
+          echo "ZIP=$ZIP" >> $GITHUB_ENV
+
       - name: Extract project ZIP
         run: |
           mkdir -p project
-          unzip -o StudyMate-GitHub-APK-Ready.zip -d project
+          unzip -o "$ZIP" -d project
 
       - name: Find Gradle project
         run: |
-          find project -name gradlew -type f
+          GRADLEW=$(find project -name gradlew -type f | head -1)
+          chmod +x "$GRADLEW"
+          echo "GRADLEW=$GRADLEW" >> $GITHUB_ENV
+          echo "PROJECT_DIR=$(dirname "$GRADLEW")" >> $GITHUB_ENV
 
       - name: Build APK
         run: |
-          GRADLEW=$(find project -name gradlew -type f | head -1)
-          chmod +x "$GRADLEW"
-          cd "$(dirname "$GRADLEW")"
-          ./gradlew assembleDebug
+          cd "$PROJECT_DIR"
+          ./gradlew assembleDebug --no-daemon
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: StudyMate-APK
-          path: project/**/build/outputs/apk/**/*.apk
+          path: |
+            ${{ env.PROJECT_DIR }}/app/build/outputs/apk/debug/*.apk
